@@ -1,12 +1,12 @@
-# Maintainer: hensur <me@hensur.de>
+# Maintainer: lucaber <luca@berneking.net>
 
-pkgname='yoga370d-git'
-_pkgname='yoga370d'
+pkgname='yogax380d-git'
+_pkgname='yogax380d'
 pkgver=r18.37e99a7
 pkgrel=1
-pkgdesc='A python daemon which automatically enables tablet mode on the Thinkpad Yoga 370. This means switching off the TouchPad and TrackPoint. The script can also disable the Finger Input if the Pen is in use. It will optionally rotate the screen.'
-url="https://github.com/hensur/yoga370d"
-source=('yoga370d::git+https://github.com/hensur/yoga370d')
+pkgdesc='A python daemon which automatically enables tablet mode on the Thinkpad X380 Yoga. This means switching off the TouchPad and TrackPoint. The script can also disable the Finger Input if the Pen is in use. It will optionally rotate the screen.'
+url="https://github.com/lucaber/yogax380d"
+source=('yogax380d::git+https://github.com/lucaber/yogax380d')
 license=('GPL3')
 arch=('any')
 depends=('xorg-xrandr' 'acpid' 'python-dbus' 'iio-sensor-proxy' 'python-docopt' 'xorg-xinput' 'xf86-input-wacom' 'python')
@@ -20,9 +20,7 @@ pkgver() {
 
 package() {
     cd $srcdir/$_pkgname
-    # yoga370d binary
-    install -Dm755 "yoga370d" "${pkgdir}/usr/local/bin/yoga370d"
+    # yogax380d binary
+    install -Dm755 "yogax380d" "${pkgdir}/usr/local/bin/yogax380d"
 
-    # ThinkPad Yoga Desktop File
-    install -Dm644 "${_pkgname}.desktop" "${pkgdir}/usr/share/applications/${_pkgname}.desktop"
 }
