@@ -1,9 +1,0 @@
-[Desktop Entry]
-Version=1.0
-Name=Yoga x380 Daemon
-GenericName=Yoga x380 Daemon
-Comment=Enable Tablet Mode and disable Touch while using the Pen
-Exec=/usr/local/bin/yogax380d
-Terminal=false
-Type=Application
-X-Desktop-File-Install-Version=0.22
