@@ -23,8 +23,8 @@ from dbus.mainloop.glib import DBusGMainLoop
 NAME = "yoga370d"
 VERSION = "1.0"
 # Set to True to enable screen and digitizer rotation
-ROTATE_ACTIVE = False
-KEYBOARD_ACTIVE = True
+ROTATE_ACTIVE = True
+KEYBOARD_ACTIVE = False
 
 # map sensor-proxy orientation to xrandr and wacom
 XRANDR_ORIENTATION_MAP = {
@@ -60,15 +60,16 @@ def monitor_acpi_events(touch_and_track):
     socketACPI = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     socketACPI.connect("/var/run/acpid.socket")
 
-    keyboard_settings = Gio.Settings("org.gnome.desktop.a11y.applications") 
+    if KEYBOARD_ACTIVE:
+        keyboard_settings = Gio.Settings("org.gnome.desktop.a11y.applications")
 
     log.info("connected to acpi socket %s", socket)
     while True:
         event = socketACPI.recv(4096)
         log.debug("catching acpi event %s", event)
         print(event)
-        eventACPIDisplayPositionTablet = b'video/tabletmode TBLT 0000008A 00000001 K\n'
-        eventACPIDisplayPositionLaptop = b'video/tabletmode TBLT 0000008A 00000000 K\n'
+        eventACPIDisplayPositionTablet = b'video/tabletmode TBLT 0000008A 00000001\n'
+        eventACPIDisplayPositionLaptop = b'video/tabletmode TBLT 0000008A 00000000\n'
         if event == eventACPIDisplayPositionTablet:
             log.info("display position change detected, tablet mode enabled")
             for x in touch_and_track:
