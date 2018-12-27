@@ -17,6 +17,8 @@ import multiprocessing
 import atexit
 import docopt
 import dbus
+from pathlib import Path
+from fileinput import FileInput
 from gi.repository import GLib, Gio
 from dbus.mainloop.glib import DBusGMainLoop
 import re
@@ -25,7 +27,6 @@ NAME = "yogax380d"
 VERSION = "1.0"
 # Set to True to enable screen and digitizer rotation
 ROTATE_ACTIVE = True
-KEYBOARD_ACTIVE = False
 WM_RESTART_COMMAND = ['i3-msg', 'restart']
 
 # map sensor-proxy orientation to xrandr and wacom
@@ -43,6 +44,38 @@ WACOM_ORIENTATION_MAP = {
     'left-up': 'ccw'
 }
 
+state = str(Path.home().joinpath(".config/yogad/state.sh"))
+
+def process_running(name):
+    p = subprocess.run(["pgrep", name])
+    if p.returncode == 0:
+        return True
+    return False
+
+def restart_wm():
+    if process_running("i3lock"):
+        log.error("lock screen prevents restart")
+        return
+
+    if WM_RESTART_COMMAND:
+        cmd_and_log(WM_RESTART_COMMAND)
+
+def write_state(state_var, state_value):
+    """
+    finds occurrence of state var and replaces value with updated one
+    """
+    with FileInput(files=[state], inplace=True) as f:
+        state_found = False
+        for l in f:
+            if l.startswith(state_var.upper() + "="):
+                l = state_var.upper() + "=\"" + state_value + "\""
+                state_found = True
+            print(l, end="")
+
+    if not state_found:
+        with open(state, "a") as f:
+            f.write(state_var.upper() + "=\"" + state_value + "\"")
+
 def cmd_and_log(cmd):
     """Execute cmd and log it"""
     exit_code = subprocess.call(cmd)
@@ -56,16 +89,12 @@ def sensor_proxy_signal_handler(source, changedProperties, invalidatedProperties
             subprocess.call(["xrandr", "-o", XRANDR_ORIENTATION_MAP[orientation]])
             for device in wacom:
                 cmd_and_log(["xsetwacom", "--set", device, "rotate", WACOM_ORIENTATION_MAP[orientation]])
-            if WM_RESTART_COMMAND:
-                cmd_and_log(WM_RESTART_COMMAND)
+            restart_wm()
 
 def monitor_acpi_events(touch_and_track):
     """toggle trackpoint and touchpad when changing from laptop to tablet mode and vice versa"""
     socketACPI = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     socketACPI.connect("/var/run/acpid.socket")
-
-    if KEYBOARD_ACTIVE:
-        keyboard_settings = Gio.Settings("org.gnome.desktop.a11y.applications")
 
     log.info("connected to acpi socket %s", socket)
     while True:
@@ -78,15 +107,14 @@ def monitor_acpi_events(touch_and_track):
             log.info("display position change detected, tablet mode enabled")
             for x in touch_and_track:
                 cmd_and_log(["xinput", "disable", x])
-            if KEYBOARD_ACTIVE:
-                # enable gnome touch keyboard
-                keyboard_settings.set_boolean("screen-keyboard-enabled", True)
+            write_state("mode", "tablet")
+            restart_wm()
         elif event == eventACPIDisplayPositionLaptop:
             log.info("display position change detected, laptop mode enabled")
             for x in touch_and_track:
                 cmd_and_log(["xinput", "enable", x])
-            if KEYBOARD_ACTIVE:
-                keyboard_settings.set_boolean("screen-keyboard-enabled", False)
+            write_state("mode", "laptop")
+            restart_wm()
         time.sleep(0.3)
 
 def monitor_stylus_proximity(stylus, finger_touch):
@@ -104,6 +132,8 @@ def cleanup(touch_and_track, wacom):
     if ROTATE_ACTIVE:
         for device in wacom:
             cmd_and_log(["xsetwacom", "--set", device, "rotate", "none"])
+    write_state("mode", "laptop")
+    restart_wm()
 
 def main(options):
     # globals
