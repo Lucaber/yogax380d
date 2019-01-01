@@ -117,14 +117,6 @@ def monitor_acpi_events(touch_and_track):
             restart_wm()
         time.sleep(0.3)
 
-def monitor_stylus_proximity(stylus, finger_touch):
-    out = subprocess.Popen(["xinput", "test", "-proximity", stylus], stdout=subprocess.PIPE)
-    for line in out.stdout:
-        if (line.startswith(b'proximity')):
-            log.debug(line)
-            status = line.split(b' ')[1]
-            cmd_and_log(["xinput", "disable" if status==b'in' else "enable", finger_touch])
-
 def cleanup(touch_and_track, wacom):
     subprocess.call(["xrandr", "-o", "normal"])
     for x in touch_and_track:
@@ -182,9 +174,6 @@ def main(options):
     # listen for ACPI events to detect switching between laptop/tablet mode
     acpi_process = multiprocessing.Process(target=monitor_acpi_events, args=(touch_and_track,))
     acpi_process.start()
-
-    proximity_process = multiprocessing.Process(target=monitor_stylus_proximity, args=(stylus, finger_touch))
-    proximity_process.start()
 
     atexit.register(cleanup, touch_and_track, wacom)
 
